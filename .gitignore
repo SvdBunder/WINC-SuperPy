@@ -23,7 +23,10 @@
 /strings
 /testing
 /testing.py
+/testing2.py
 /test_example.py
 /variables
 /while
 /__pycache__
+/superpy/CLI_class.py
+/superpy/old_functions.py

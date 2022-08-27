@@ -1,1 +1,5 @@
 ID,buy_ID,product_name,sell_date,sell_amount,sell_price_unit
+1,1,orange,2022-08-08,8,0.83
+2,4,orange,2022-08-08,5,0.83
+3,6,orange,2022-08-08,7,0.83
+4,3,milk,2022-08-23,4,2.25
