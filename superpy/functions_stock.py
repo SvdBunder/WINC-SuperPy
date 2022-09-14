@@ -6,8 +6,6 @@ from types import SimpleNamespace
 # FUNCTIONS CALLED BY SUPERPY CLASSES
 # -----------------------------------------------------------------------------------------
 #
-
-
 def date_intel(report_date):
     from functions_system import read_time
 

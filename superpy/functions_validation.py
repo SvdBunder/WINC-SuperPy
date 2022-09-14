@@ -6,8 +6,6 @@ import functions_system as SPFsystem
 # FUNCTIONS VALIDATION
 # -----------------------------------------------------------------------------------------
 #
-
-
 def validate_arguments(
     product_name=None,
     amount=None,

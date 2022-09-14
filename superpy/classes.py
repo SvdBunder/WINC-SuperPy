@@ -257,7 +257,7 @@ class Report:
             justify="right",
             footer=f"{'€':<1} {round(total_value,2):>10.2f}",
         )
-        table.add_column("expiration date", justify="center")
+        table.add_column("expiration date", justify="left")
 
         for obj in product_stock_sorted:
 

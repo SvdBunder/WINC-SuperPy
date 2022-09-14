@@ -14,11 +14,11 @@ __human_name__ = "superpy"
 def main():
 
     parser = SPparser.main_parser
+    SPFsystem.create_files()
+    SPFsystem.save_time()
 
-    # starting the program using only "superpy.py" as command will trigger creating needed files, saving current date and print the help message
+    # if no command is given will return help
     if len(sys.argv) == 1:
-        SPFsystem.create_files()
-        SPFsystem.save_time()
         parser.print_help()
         exit(0)
 

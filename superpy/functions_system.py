@@ -1,6 +1,6 @@
 import csv, os
 from datetime import date, datetime, timedelta
-import functions_stock as SPFclass
+import functions_stock as SPFstock
 
 # -----------------------------------------------------------------------------------------
 # FUNCTIONS SYSTEM MAINTENANCE
@@ -21,24 +21,16 @@ def save_time(days=0, restore=False):
     if os.path.isfile("SuperPyDate.txt") is False:
         with open("SuperPyDate.txt", "w") as file:
             file.write(new_date.strftime("%Y-%m-%d"))
-    else:
 
+    else:
         saved_date = read_time()
 
-        if saved_date == new_date:
-            return
-
-        elif saved_date > new_date and restore is False:
-            return print(
-                f"Registered date is {saved_date} and exceeds current date. \nIf this is not the correct date please execute the --restore-time command."
-            )
-
-        else:
-
+        if saved_date < new_date or restore:
             with open("SuperPyDate.txt", "w") as writer:
 
                 writer.write(new_date.strftime("%Y-%m-%d"))
 
+            if restore or days != 0:
                 return print("OK")
 
 
@@ -113,7 +105,7 @@ def manage_products(product_list=False, add_product=None, delete_product=None):
 
         for item in products_to_be_deleted:
             item_del = item.lower()
-            product_stock = SPFclass.determine_stock(item_del)
+            product_stock = SPFstock.determine_stock(item_del)
             amount_in_stock = sum(obj.amount for obj in product_stock)
             if item_del not in allowed_products:
                 message.append(
