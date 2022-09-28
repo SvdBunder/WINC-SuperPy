@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from re import S
 from rich.console import Console
 from rich.table import Table
 from rich import box
@@ -64,7 +65,9 @@ class Action:
             )
 
     def sell(self):
-        product_stock = SPFstock.determine_stock(product_name=self.product_name)
+        product_stock = SPFstock.determine_stock(
+            product_name=self.product_name, stock_date=date.today()
+        )
         amount_in_stock = sum(obj.amount for obj in product_stock)
         if amount_in_stock == 0:
             print("Product is not in stock.")
@@ -120,7 +123,11 @@ class Report:
         self.per_product = per_product
 
     def get_method(self, action):
-        self.action = action
+        self.action = (
+            "inventory_per_product"
+            if (action == "inventory" and self.per_product)
+            else action
+        )
         method = getattr(self, self.action)
         validation = SPFval.validate_arguments(
             product_name=self.product_name,
@@ -230,7 +237,9 @@ class Report:
             )
 
     def inventory(self):
-        product_stock = SPFstock.determine_stock(product_name=self.product_name)
+        product_stock = SPFstock.determine_stock(
+            product_name=self.product_name, stock_date=self.report_date
+        )
 
         product_stock_sorted = sorted(product_stock, key=lambda obj: obj.product_name)
         period = datetime.strptime(self.report_date, "%Y-%m-%d").strftime("%d %B %Y")
@@ -275,6 +284,18 @@ class Report:
             )
 
         return console.print(table)
+
+    def inventory_per_product(self):
+        product_stock = SPFstock.determine_stock(stock_date=self.report_date)
+        products_in_stock = []
+
+        for obj in product_stock:
+            if obj.product_name not in products_in_stock:
+                products_in_stock.append(obj.product_name)
+
+        for product in products_in_stock:
+            self.product_name = product
+            self.inventory()
 
 
 class ImportFromFile:

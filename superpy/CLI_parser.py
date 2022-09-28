@@ -61,9 +61,7 @@ main_parser = argparse.ArgumentParser(
 )
 main_parser._action_groups[0].title = "commands"
 
-main_group_time = main_parser.add_argument_group(
-    title="system time management commands"
-)
+main_group_time = main_parser.add_argument_group(title="systemtime management commands")
 main_exclusive_time = main_group_time.add_mutually_exclusive_group()
 main_exclusive_time.add_argument(
     "--report-time", action="store_true", help="Show system time."
@@ -89,12 +87,12 @@ main_exclusive_product.add_argument(
 main_exclusive_product.add_argument(
     "--add-product",
     nargs="+",
-    help="Add one or more products (names divided by whitespace) to the list of allowed products.",
+    help="Add one or more products (names divided by a whitespace) to the list of allowed products.",
 )
 main_exclusive_product.add_argument(
     "--delete-product",
     nargs="+",
-    help="Delete one or more products (names divided by whitespace) from the list of allowed products.",
+    help="Delete one or more products (names divided by a whitespace) from the list of allowed products.",
 )
 
 # [level 1] SUBPARSERS TO MAIN PARSER
@@ -133,7 +131,7 @@ level1_import_parser_group.add_argument(
 )
 level1_import_parser_group.add_argument(
     "--file-name",
-    help="Name of the file, including '.csv' file extension.",
+    help="Name of the file, including '.xlsx' file extension.",
     required=True,
 )
 

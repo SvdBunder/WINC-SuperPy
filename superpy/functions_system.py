@@ -1,6 +1,6 @@
 import csv, os
 from datetime import date, datetime, timedelta
-import functions_stock as SPFstock
+
 
 # -----------------------------------------------------------------------------------------
 # FUNCTIONS SYSTEM MAINTENANCE
@@ -8,7 +8,7 @@ import functions_stock as SPFstock
 #
 def read_time(days=0):
 
-    with open("SuperPyDate.txt", "r") as reader:
+    with open("systemtime.txt", "r") as reader:
         saved_text = reader.read()
         saved_date = datetime.strptime(saved_text, "%Y-%m-%d").date()
         report_date = saved_date + timedelta(days)
@@ -18,15 +18,15 @@ def read_time(days=0):
 def save_time(days=0, restore=False):
     new_date = date.today() + timedelta(days)
 
-    if os.path.isfile("SuperPyDate.txt") is False:
-        with open("SuperPyDate.txt", "w") as file:
+    if os.path.isfile("systemtime.txt") is False:
+        with open("systemtime.txt", "w") as file:
             file.write(new_date.strftime("%Y-%m-%d"))
 
     else:
         saved_date = read_time()
 
         if saved_date < new_date or restore:
-            with open("SuperPyDate.txt", "w") as writer:
+            with open("systemtime.txt", "w") as writer:
 
                 writer.write(new_date.strftime("%Y-%m-%d"))
 
@@ -84,6 +84,8 @@ def read_products():
 
 
 def manage_products(product_list=False, add_product=None, delete_product=None):
+    from functions_stock import determine_stock
+
     message = []
     allowed_products = []
     saved_products = read_products()
@@ -105,7 +107,7 @@ def manage_products(product_list=False, add_product=None, delete_product=None):
 
         for item in products_to_be_deleted:
             item_del = item.lower()
-            product_stock = SPFstock.determine_stock(item_del)
+            product_stock = determine_stock(item_del)
             amount_in_stock = sum(obj.amount for obj in product_stock)
             if item_del not in allowed_products:
                 message.append(
@@ -118,8 +120,11 @@ def manage_products(product_list=False, add_product=None, delete_product=None):
                 )
 
             else:
-                message.append(f"Product {item_del} is deleted.")
+
                 allowed_products.remove(item_del)
+        message.append(
+            f"{len(saved_products)-len(allowed_products)} products are deleted."
+        )
 
     elif add_product is not None:
         for item in products_to_be_added:
@@ -127,8 +132,10 @@ def manage_products(product_list=False, add_product=None, delete_product=None):
             if item_add in allowed_products:
                 message.append(f"Product {item_add} already exists.")
             else:
-                message.append(f"Product {item_add} is added.")
                 allowed_products.append(item_add)
+        message.append(
+            f"{len(allowed_products)-len(saved_products)} products are added."
+        )
 
     with open("products.csv", mode="w") as write_file:
         writer = csv.DictWriter(write_file, fieldnames=["product_name"])

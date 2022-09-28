@@ -1,19 +1,21 @@
 import csv
-from datetime import datetime
+from datetime import datetime, date
 from types import SimpleNamespace
+import functions_system as SPfunctions
 
 # -----------------------------------------------------------------------------------------
 # FUNCTIONS CALLED BY SUPERPY CLASSES
 # -----------------------------------------------------------------------------------------
 #
 def date_intel(report_date):
-    from functions_system import read_time
 
     if len(report_date) == 10:
         date_length = 10
-        if datetime.strptime(report_date, "%Y-%m-%d").date() == read_time():
+        if datetime.strptime(report_date, "%Y-%m-%d").date() == SPfunctions.read_time():
             message = "today so far"
-        elif datetime.strptime(report_date, "%Y-%m-%d").date() == read_time(-1):
+        elif datetime.strptime(report_date, "%Y-%m-%d").date() == SPfunctions.read_time(
+            -1
+        ):
             message = "yesterday"
         else:
             message = datetime.strptime(report_date, "%Y-%m-%d").strftime("%d %B %Y")
@@ -75,6 +77,7 @@ def sales(product_name=None):
 
 def purchases(product_name=None):
     product_bought = []
+
     with open("purchases.csv", mode="r") as purchases_file:
         fieldnames_purchases = [
             "ID",
@@ -96,6 +99,7 @@ def purchases(product_name=None):
                         SimpleNamespace(
                             ID=line["ID"],
                             product_name=line["product_name"],
+                            buy_date=line["buy_date"],
                             amount=line["buy_amount"],
                             price_unit=line["buy_price_unit"],
                             expiration_date=line["expiration_date"],
@@ -108,6 +112,7 @@ def purchases(product_name=None):
                         SimpleNamespace(
                             ID=line["ID"],
                             product_name=line["product_name"],
+                            buy_date=line["buy_date"],
                             amount=line["buy_amount"],
                             price_unit=line["buy_price_unit"],
                             expiration_date=line["expiration_date"],
@@ -116,26 +121,31 @@ def purchases(product_name=None):
         return product_bought
 
 
-def determine_stock(product_name=None):
+def determine_stock(product_name=None, stock_date=date.today()):
     product_stock = []
     product_sold = sales(product_name)
     product_bought = purchases(product_name)
 
     for obj_bought in product_bought:
-        amount_left = int(obj_bought.amount) - sum(
-            int(obj_sold.amount)
-            for obj_sold in product_sold
-            if obj_sold.buy_ID == obj_bought.ID
-        )
-        if amount_left > 0:
-            product_stock.append(
-                SimpleNamespace(
-                    ID=obj_bought.ID,
-                    product_name=obj_bought.product_name,
-                    amount=amount_left,
-                    price_unit=float(obj_bought.price_unit),
-                    expiration_date=obj_bought.expiration_date,
+        if obj_bought.buy_date <= stock_date:
+            amount_left = int(obj_bought.amount) - sum(
+                int(obj_sold.amount)
+                for obj_sold in product_sold
+                if (
+                    obj_sold.buy_ID == obj_bought.ID
+                    and obj_sold.sell_date <= stock_date
                 )
             )
+
+            if amount_left > 0:
+                product_stock.append(
+                    SimpleNamespace(
+                        ID=obj_bought.ID,
+                        product_name=obj_bought.product_name,
+                        amount=amount_left,
+                        price_unit=float(obj_bought.price_unit),
+                        expiration_date=obj_bought.expiration_date,
+                    )
+                )
 
     return product_stock

@@ -40,7 +40,7 @@ def validate_arguments(
                 expire_date = datetime.strptime(expiration_date, "%Y-%m-%d").date()
 
                 if expire_date < date.today():
-                    message.append("Expiration date is already reached.")
+                    message.append("Expiration date has already passed.")
             except ValueError:
                 message.append("Expiration date does not exist.")
 
