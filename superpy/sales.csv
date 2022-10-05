@@ -1,7 +1,0 @@
-ID,buy_ID,product_name,sell_date,sell_amount,sell_price_unit
-1,1,orange,2022-09-21,1,0.4
-2,3,pineapple,2022-09-21,9,1.8
-3,1,orange,2022-09-21,1,0.6
-4,4,orange,2022-09-21,8,0.6
-5,7,orange,2022-09-21,3,0.6
-6,5,milk,2022-09-21,2,1.15

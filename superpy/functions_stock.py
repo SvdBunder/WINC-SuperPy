@@ -45,10 +45,10 @@ def sales(product_name=None):
         ]
 
         sales_reader = csv.DictReader(sales_file, fieldnames=fieldnames_sales)
-
+        next(sales_reader)
         if product_name is not None:
             for line in sales_reader:
-                if line["ID"] != "ID" and line["product_name"] == product_name.lower():
+                if line["product_name"] == product_name.lower():
                     product_sold.append(
                         SimpleNamespace(
                             ID=line["ID"],
@@ -61,17 +61,16 @@ def sales(product_name=None):
                     )
         else:
             for line in sales_reader:
-                if line["ID"] != "ID":
-                    product_sold.append(
-                        SimpleNamespace(
-                            ID=line["ID"],
-                            buy_ID=line["buy_ID"],
-                            product_name=line["product_name"],
-                            amount=line["sell_amount"],
-                            sell_date=line["sell_date"],
-                            price_unit=line["sell_price_unit"],
-                        )
+                product_sold.append(
+                    SimpleNamespace(
+                        ID=line["ID"],
+                        buy_ID=line["buy_ID"],
+                        product_name=line["product_name"],
+                        amount=line["sell_amount"],
+                        sell_date=line["sell_date"],
+                        price_unit=line["sell_price_unit"],
                     )
+                )
         return product_sold
 
 
@@ -92,9 +91,11 @@ def purchases(product_name=None):
             purchases_file, fieldnames=fieldnames_purchases
         )
 
+        next(purchases_reader)
+
         if product_name is not None:
             for line in purchases_reader:
-                if line["ID"] != "ID" and line["product_name"] == product_name.lower():
+                if line["product_name"] == product_name.lower():
                     product_bought.append(
                         SimpleNamespace(
                             ID=line["ID"],
@@ -107,17 +108,16 @@ def purchases(product_name=None):
                     )
         else:
             for line in purchases_reader:
-                if line["ID"] != "ID":
-                    product_bought.append(
-                        SimpleNamespace(
-                            ID=line["ID"],
-                            product_name=line["product_name"],
-                            buy_date=line["buy_date"],
-                            amount=line["buy_amount"],
-                            price_unit=line["buy_price_unit"],
-                            expiration_date=line["expiration_date"],
-                        )
+                product_bought.append(
+                    SimpleNamespace(
+                        ID=line["ID"],
+                        product_name=line["product_name"],
+                        buy_date=line["buy_date"],
+                        amount=line["buy_amount"],
+                        price_unit=line["buy_price_unit"],
+                        expiration_date=line["expiration_date"],
                     )
+                )
         return product_bought
 
 

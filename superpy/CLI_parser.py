@@ -120,18 +120,24 @@ level1_import_parser_group = level1_import_parser.add_argument_group(
     title="required arguments"
 )
 level1_import_parser_group.add_argument(
-    "--import-type",
+    "--file-type",
+    help="Choose what file format is used.",
+    choices=["csv", "xlsx"],
+    required=True,
+)
+level1_import_parser_group.add_argument(
+    "--transaction-type",
     help="Choose if the file contains purchases (buy) or sales (sell) transactions.",
     choices=["buy", "sell"],
     required=True,
-    dest="type",
+    dest="transaction",
 )
 level1_import_parser_group.add_argument(
     "--file-path", help="Path to the directory of the file.", required=True
 )
 level1_import_parser_group.add_argument(
     "--file-name",
-    help="Name of the file, including '.xlsx' file extension.",
+    help="Name of the file, including file extension (f.e. '.xlsx').",
     required=True,
 )
 

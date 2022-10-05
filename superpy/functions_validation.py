@@ -1,4 +1,4 @@
-import csv
+import csv, os
 from datetime import date, datetime
 import functions_system as SPFsystem
 
@@ -65,7 +65,15 @@ def validate_arguments(
     return message
 
 
-def validate_file(file_name):
+def validate_file_existence(file_path, file_name):
+    message = []
+    file = os.path.join(file_path, file_name)
+    if os.path.isfile(file) is False:
+        message.append(f"ERROR: file '{file}' does not exist")
+    return message
+
+
+def validate_file_content(file_name):
     message = []
     line_count = 0
 

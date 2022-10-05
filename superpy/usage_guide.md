@@ -224,21 +224,23 @@ ID,buy_ID,product_name,sell_date,sell_amount,sell_price_unit
 
 #### 2.3.3. Import-file command
 
-When this command is entered the "get_method" method of the ImportFromFile class is called. This method first runs the "convert_xlsx_to_csv" method in this class to convert the Excel file in a temporary CSV file. Next functions_validation.validate_file() is calles which invokes functions_validation.validate_arguments() to check if all given arguments on all lines of the file are within specified parameters. It will return a message naming the errors plus exit the program if not all arguments pass the validation.
-If validation is successful then either the ImportFromFile class method "import_buy" of "import_sell" is called depending on given import-type. These methods call either the "buy" or "sell" method of class Action to save every line in the imported file.
+When this command is entered the "get_method" method of the ImportFromFile class is called. This method first checks if the file exists (using functions_validation.validate_file_existence(file_path,file_name)), then converts the import file to a temporary CSV file with set fieldnames => all other functions only need to be able to handle a CSV file with the set fieldnames instead of multiple file formats. 
+Next functions_validation.validate_file_content() is calles which invokes functions_validation.validate_arguments() to check if all given arguments on all lines of the file are within specified parameters. It will return a message naming the errors plus exit the program if not all arguments pass the validation.
+If validation is successful then either the ImportFromFile class method "import_buy" of "import_sell" is called depending on given transaction-type. These methods call either the "buy" or "sell" method of class Action to save every line in the imported file.
 
 Arguments for this command:
-- Import-type (required): either "buy" or "sell" needs to be chosen. This argument determines which method in the class ImportFromFile is called ("import_buy" or "import_sell").
+- Transaction-type (required): either "buy" or "sell" needs to be chosen. This argument determines which method in the class ImportFromFile is called ("import_buy" or "import_sell").
 - File-path (required): the path to the file.
-- File-name (required): the name of the file, including the ".xlsx" file extension.
+- File-name (required): the name of the file, including the file extension.
+- File-type (required): the file format that is used, for now a choice between csv and xlsx. If more formats are added in the future: add it to the choices in the CLI_parser and add a method "<format>_to_temp_csv" in the ImportFromFile class.
 
 Required headers in separate columns in the imported file (in random order):
-- import-type "buy": product_name, price_unit, amount, expiration_date
-- import-type "sell": product_name, price_unit, amount
+- transaction-type "buy": product_name, price_unit, amount, expiration_date
+- transaction-type "sell": product_name, price_unit, amount
 
 ```
 IMPORT-FILE EXAMPLE 1 - PURCHASES WITH ERRORS
->>> python superpy.py import-file --import-type buy --file-path C:\myjunk\importfiles --file-name test-purchases-error.xlsx
+>>> python superpy.py import-file --transaction-type buy -- file-type csv --file-path C:\myjunk\importfiles --file-name test-purchases-error-CSV.csv
 Errors in line 1 of the file: ['Expiration date is not correct. Format needs to be YYYY-MM-DD.']
 Errors in line 2 of the file: ['Product is not in the list of products approved for sale in this store.']
 Errors in line 3 of the file: ['Expiration date does not exist.']
@@ -248,7 +250,7 @@ Errors in line 5 of the file: ['Price can not have more than 2 decimals.']
 
 ```
 IMPORT-FILE EXAMPLE 2 - PURCHASES WITHOUT ERRORS
->>> python superpy.py import-file --import-type buy --file-path C:\myjunk\importfiles --file-name test-purchases-correct.xlsx
+>>> python superpy.py import-file --transaction-type buy --file-type csv --file-path C:\myjunk\importfiles --file-name test-purchases-correct-CSV.csv
 Import completed: 7 purchases transactions imported.
 
 content purchases.csv file:
@@ -266,7 +268,7 @@ ID,product_name,buy_date,buy_amount,buy_price_unit,expiration_date
 
 ```
 IMPORT-FILE EXAMPLE 3 - SALES WITH ERRORS
->>> python superpy.py import-file --import-type sell --file-path C:\myjunk\importfiles --file-name test-sales-error.xlsx
+>>> python superpy.py import-file --transaction-type sell --file-type xlsx --file-path C:\myjunk\importfiles --file-name test-sales-error.xlsx
 Errors in line 1 of the file: ['Product is not in the list of products approved for sale in this store.']
 Errors in line 2 of the file: ['Price can not have more than 2 decimals.']
 Errors in line 3 of the file: ['Amount needs to be a positive number.']
@@ -274,7 +276,7 @@ Errors in line 3 of the file: ['Amount needs to be a positive number.']
 
 ```
 IMPORT-FILE EXAMPLE 4 - SALES WITHOUT ERRORS
->>> python superpy.py import-file --import-type sell --file-path C:\myjunk\importfiles --file-name test-sales-correct.xlsx
+>>> python superpy.py import-file --transaction-type sell --file-type xlsx --file-path C:\myjunk\importfiles --file-name test-sales-correct.xlsx
 Import completed: 3 sales transactions imported.
 
 content sales.csv file:

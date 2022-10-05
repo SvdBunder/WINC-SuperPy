@@ -46,8 +46,9 @@ def main():
         obj = SPclass.ImportFromFile(
             file_path=getattr(args, "file_path", None),
             file_name=getattr(args, "file_name", None),
+            file_type=getattr(args, "file_type", None),
         )
-        action_wanted = "import_" + getattr(args, "type")
+        action_wanted = "import_" + getattr(args, "transaction")
 
     elif args.command == "report":
         if args.report is None:

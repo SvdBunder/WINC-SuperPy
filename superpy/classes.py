@@ -1,5 +1,4 @@
 from datetime import date, datetime
-from re import S
 from rich.console import Console
 from rich.table import Table
 from rich import box
@@ -299,32 +298,84 @@ class Report:
 
 
 class ImportFromFile:
-    def __init__(self, file_path, file_name):
+    def __init__(self, file_path, file_name, file_type):
         self.file_path = file_path
         self.file_name = file_name
+        self.file_type = file_type
 
     def get_method(self, action):
         self.action = action
         method = getattr(self, self.action)
-        self.convert_xlsx_to_csv()
-        validation = SPFval.validate_file(file_name="temp.csv")
-        if validation:
-            print("\n".join(validation))
+        validate_existence = SPFval.validate_file_existence(
+            file_path=self.file_path, file_name=self.file_name
+        )
+        if validate_existence:
+            print(validate_existence)
             exit(1)
         else:
-            method()
+            self.file = os.path.join(self.file_path, self.file_name)
 
-    def convert_xlsx_to_csv(self):
-        xlsx_file = os.path.join(self.file_path, self.file_name)
-        if os.path.isfile(xlsx_file) is False:
-            print(f"ERROR: file '{xlsx_file}' does not exist")
-            exit(1)
-        xlsx_obj = openpyxl.load_workbook(xlsx_file).active
+            # create a temp.csv file using a method based on the file_type
+            convert_method = getattr(self, self.file_type + "_to_temp_csv")
+            convert_method()
+
+            # validate the content of the file and execute import method if validation is passed
+
+            validation = SPFval.validate_file_content(file_name="temp.csv")
+            if validation:
+                print("\n".join(validation))
+                exit(1)
+            else:
+                method()
+
+    def csv_to_temp_csv(self):
+        transaction = self.action.removeprefix("import_")
+
+        with open("temp.csv", mode="w") as write_file:
+            fieldnames_buy = [
+                "product_name",
+                "amount",
+                "price_unit",
+                "expiration_date",
+            ]
+            fieldnames_sell = ["product_name", "amount", "price_unit"]
+            fieldnames = fieldnames_buy if transaction == "buy" else fieldnames_sell
+            writer = csv.DictWriter(write_file, fieldnames=fieldnames)
+            writer.writeheader()
+
+            with open(self.file, newline="") as read_file:
+                dialect = csv.Sniffer().sniff(read_file.read(1024))
+                read_file.seek(0)
+
+                reader = csv.DictReader(read_file, dialect=dialect)
+
+                for line in reader:
+                    if transaction == "buy":
+                        writer.writerow(
+                            {
+                                "product_name": line["product_name"],
+                                "amount": line["amount"],
+                                "price_unit": line["price_unit"],
+                                "expiration_date": line["expiration_date"],
+                            }
+                        )
+
+                    else:
+                        writer.writerow(
+                            {
+                                "product_name": line["product_name"],
+                                "amount": line["amount"],
+                                "price_unit": line["price_unit"],
+                            }
+                        )
+
+    def xlsx_to_temp_csv(self):
+        xlsx_obj = openpyxl.load_workbook(self.file).active
 
         m_row = xlsx_obj.max_row
         m_col = xlsx_obj.max_column
         headers = {}
-        file_type = self.action.removeprefix("import_")
+        transaction = self.action.removeprefix("import_")
 
         # determining which column contains what header
         for col in range(1, m_col + 1):
@@ -335,7 +386,7 @@ class ImportFromFile:
         with open("temp.csv", mode="w") as write_file:
             fieldnames_buy = ["product_name", "amount", "price_unit", "expiration_date"]
             fieldnames_sell = ["product_name", "amount", "price_unit"]
-            fieldnames = fieldnames_buy if file_type == "buy" else fieldnames_sell
+            fieldnames = fieldnames_buy if transaction == "buy" else fieldnames_sell
             writer = csv.DictWriter(write_file, fieldnames=fieldnames)
             writer.writeheader()
 
@@ -346,7 +397,7 @@ class ImportFromFile:
                 amount_obj = xlsx_obj.cell(row=line, column=headers["amount"])
                 price_unit_obj = xlsx_obj.cell(row=line, column=headers["price_unit"])
 
-                if file_type == "buy":
+                if transaction == "buy":
                     expiration_date_obj = xlsx_obj.cell(
                         row=line, column=headers["expiration_date"]
                     )
