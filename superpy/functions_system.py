@@ -5,7 +5,10 @@ from datetime import date, datetime, timedelta
 # -----------------------------------------------------------------------------------------
 # FUNCTIONS SYSTEM MAINTENANCE
 # -----------------------------------------------------------------------------------------
-#
+
+# Function used in (1) save_time(); (2) CLI_parser - level2_report_inventory_parser - optional
+# arguments --now and --yesterday; (3) CLI_router - optional argument --report-time
+# Reads the stored systemtime and returns system date plus the entered amount of days.
 def read_time(days=0):
 
     with open("systemtime.txt", "r") as reader:
@@ -15,6 +18,8 @@ def read_time(days=0):
         return report_date
 
 
+# Function used in (1) superpy; (2) CLI_router - optional arguments --advance-time and --restore-time.
+# Stores the systemtime that superpy sees as "today" in a txt file.
 def save_time(days=0, restore=False):
     new_date = date.today() + timedelta(days)
 
@@ -25,15 +30,19 @@ def save_time(days=0, restore=False):
     else:
         saved_date = read_time()
 
+        # to prevent that the advanced time is replaced by date today by calling the function in superpy
+        # date is only saved if it is later in time than the stored systemtime unless --restore-time is used.
         if saved_date < new_date or restore:
             with open("systemtime.txt", "w") as writer:
 
                 writer.write(new_date.strftime("%Y-%m-%d"))
 
-            if restore or days != 0:
-                return print("OK")
+        if restore or days != 0:
+            return print("OK")
 
 
+# Function used in superpy to create all files that are needed to store product, purchase
+# and sales data.
 def create_files():
     if os.path.isfile("purchases.csv") is False:
 
@@ -71,6 +80,8 @@ def create_files():
             writer.writeheader()
 
 
+# Function used in (1) manage_products(); (2) functions_validation.validate_arguments() to check if a product
+# is allowed.
 def read_products():
     product_list = []
 
@@ -83,7 +94,13 @@ def read_products():
     return product_list
 
 
+# Function used in CLI_router - optional arguments --product-list, --add-product and
+# --delete-product to report, add or delete products in the stored product list.
+# All product-names are always looked at and stored in lowercase, due to python being case sensitive
+# and seeing a word with capital as a different item than a word without capital.
 def manage_products(product_list=False, add_product=None, delete_product=None):
+    # Importing only the wanted function and not the entire module at the start of the file
+    # to prevent an import error => both modules want to import each other.
     from functions_stock import determine_stock
 
     message = []
@@ -92,9 +109,13 @@ def manage_products(product_list=False, add_product=None, delete_product=None):
     products_to_be_added = add_product
     products_to_be_deleted = delete_product
 
+    # Storing the currently allowed products in a list for manipulation by add or delete.
+    # Save_products is not changed => used to determine how many products are added or deleted,
+    # taking into account that some of the given products already exist or can not be deleted.
     for item_saved in saved_products:
         allowed_products.append(item_saved)
 
+    # Only activates this part for optional argument --product-list; printing a list of allowed products.
     if product_list:
         if bool(saved_products) is False:
             return print(
@@ -103,32 +124,39 @@ def manage_products(product_list=False, add_product=None, delete_product=None):
         else:
             return (print("Allowed products:"), print("\n".join(saved_products)))
 
+    # Only activates this part for optional argument --delete-product
+    # Multiple products can be deleted at one time
     elif delete_product is not None:
 
         for item in products_to_be_deleted:
             item_del = item.lower()
             product_stock = determine_stock(item_del)
             amount_in_stock = sum(obj.amount for obj in product_stock)
+
+            # Check if there is anything to be deleted
             if item_del not in allowed_products:
                 message.append(
                     f"Product {item_del} is not in the list of products approved for sale in this store."
                 )
-
+            # Check if there is any in stock => if there is the product can not be deleted or you can not sell it anymore.
             elif int(amount_in_stock) > 0:
                 message.append(
                     f"Product {item_del} will not be deleted: there still are {amount_in_stock} units in stock."
                 )
 
             else:
-
+                # product is deleted
                 allowed_products.remove(item_del)
         message.append(
             f"{len(saved_products)-len(allowed_products)} products are deleted."
         )
 
+    # Only activates this part for optional argument --add-product
+    # Multiple products can be added at one time
     elif add_product is not None:
         for item in products_to_be_added:
             item_add = item.lower()
+            # Check if the product does not exist yet before adding it.
             if item_add in allowed_products:
                 message.append(f"Product {item_add} already exists.")
             else:
@@ -137,6 +165,7 @@ def manage_products(product_list=False, add_product=None, delete_product=None):
             f"{len(allowed_products)-len(saved_products)} products are added."
         )
 
+    # Storing the new allowed products list, truncating the products.csv file.
     with open("products.csv", mode="w") as write_file:
         writer = csv.DictWriter(write_file, fieldnames=["product_name"])
         writer.writeheader()

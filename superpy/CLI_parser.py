@@ -1,11 +1,12 @@
 import argparse
-import functions_system as SPFsystem
+import functions_system
 
 # -----------------------------------------------------------------------------------------
 # CREATING PARENT PARSERS
 # -----------------------------------------------------------------------------------------
 #
 # PARENT PARSERS FOR LEVEL 1 PARSERS BUY AND SELL
+# optional argument used by both buy and sell
 parent_parser_optional = argparse.ArgumentParser(add_help=False)
 parent_parser_optional.add_argument(
     "--amount",
@@ -13,6 +14,8 @@ parent_parser_optional.add_argument(
     type=int,
     help="Amount of products: a positive number without decimals. Default is 1.",
 )
+
+# positional (required) arguments used by both buy and sell
 parent_parser_sell_required = argparse.ArgumentParser(add_help=False)
 parent_parser_sell_required._action_groups[1].title = "required arguments"
 
@@ -26,7 +29,7 @@ parent_parser_sell_required.add_argument(
     required=True,
 )
 
-
+# positional (required) argument used by buy
 parent_parser_buy_required = argparse.ArgumentParser(
     add_help=False, parents=[parent_parser_sell_required]
 )
@@ -61,6 +64,7 @@ main_parser = argparse.ArgumentParser(
 )
 main_parser._action_groups[0].title = "commands"
 
+# [level 0] exclusive optional argument group for manipulating systemtime
 main_group_time = main_parser.add_argument_group(title="systemtime management commands")
 main_exclusive_time = main_group_time.add_mutually_exclusive_group()
 main_exclusive_time.add_argument(
@@ -79,6 +83,7 @@ main_exclusive_time.add_argument(
     help="Restores system time to current date.",
 )
 
+# [level 0] exclusive optional argument group for manipulating allowed products
 main_group_product = main_parser.add_argument_group(title="product management commands")
 main_exclusive_product = main_group_product.add_mutually_exclusive_group()
 main_exclusive_product.add_argument(
@@ -96,8 +101,9 @@ main_exclusive_product.add_argument(
 )
 
 # [level 1] SUBPARSERS TO MAIN PARSER
-
 level1_parsers = main_parser.add_subparsers(dest="command")
+
+# [level 1] main - buy
 level1_buy_parser = level1_parsers.add_parser(
     "buy",
     help="Buying a product and adding to stock.",
@@ -105,12 +111,15 @@ level1_buy_parser = level1_parsers.add_parser(
     parents=[parent_parser_buy_required, parent_parser_optional],
 )
 
+# [level 1] main - sell
 level1_sell_parser = level1_parsers.add_parser(
     "sell",
     help="Selling a product to a customer.",
     description="Selling a product to a customer.",
     parents=[parent_parser_sell_required, parent_parser_optional],
 )
+
+# [level 1] main - import-file
 level1_import_parser = level1_parsers.add_parser(
     "import-file",
     help="Import purchase or sales transactions using a csv file. Required columns and headers: product_name | price_unit | amount (| expiration_date if it is a purchase).",
@@ -141,6 +150,7 @@ level1_import_parser_group.add_argument(
     required=True,
 )
 
+# [level 1] main - report
 level1_report_parser = level1_parsers.add_parser(
     "report",
     help="Enter reporting subcommands. Add '-h' for a list of all available reports.",
@@ -160,7 +170,6 @@ level2_report_inventory_parser = level2_parsers_report.add_parser(
     parents=[parent_report_optional],
 )
 
-
 level2_report_inventory_group = level2_report_inventory_parser.add_argument_group(
     title="required: choose one of the following"
 )
@@ -170,14 +179,14 @@ level2_report_inventory_exclusive = (
 level2_report_inventory_exclusive.add_argument(
     "--now",
     action="store_const",
-    const=SPFsystem.read_time().strftime("%Y-%m-%d"),
+    const=functions_system.read_time().strftime("%Y-%m-%d"),
     help="Report created based on saved system time.",
     dest="report_date",
 )
 level2_report_inventory_exclusive.add_argument(
     "--yesterday",
     action="store_const",
-    const=SPFsystem.read_time(days=-1).strftime("%Y-%m-%d"),
+    const=functions_system.read_time(days=-1).strftime("%Y-%m-%d"),
     help="Report created based on saved system time minus 1 day.",
     dest="report_date",
 )
@@ -198,14 +207,14 @@ level2_report_revenue_group_exlusive = (
 level2_report_revenue_group_exlusive.add_argument(
     "--today",
     action="store_const",
-    const=SPFsystem.read_time().strftime("%Y-%m-%d"),
+    const=functions_system.read_time().strftime("%Y-%m-%d"),
     help="Report is created based on saved system time.",
     dest="report_date",
 )
 level2_report_revenue_group_exlusive.add_argument(
     "--yesterday",
     action="store_const",
-    const=SPFsystem.read_time(days=-1).strftime("%Y-%m-%d"),
+    const=functions_system.read_time(days=-1).strftime("%Y-%m-%d"),
     help="Report is created based on saved system time minus 1 day.",
     dest="report_date",
 )
@@ -232,14 +241,14 @@ level2_report_profit_group_exlusive = (
 level2_report_profit_group_exlusive.add_argument(
     "--today",
     action="store_const",
-    const=SPFsystem.read_time().strftime("%Y-%m-%d"),
+    const=functions_system.read_time().strftime("%Y-%m-%d"),
     help="Report is created based on saved system time.",
     dest="report_date",
 )
 level2_report_profit_group_exlusive.add_argument(
     "--yesterday",
     action="store_const",
-    const=SPFsystem.read_time(days=-1).strftime("%Y-%m-%d"),
+    const=functions_system.read_time(days=-1).strftime("%Y-%m-%d"),
     help="Report is created based on saved system time minus 1 day.",
     dest="report_date",
 )

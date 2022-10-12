@@ -3,8 +3,8 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 import csv, os, openpyxl
-import functions_stock as SPFstock
-import functions_validation as SPFval
+import functions_stock
+import functions_validation
 
 
 class Action:
@@ -18,15 +18,19 @@ class Action:
     def get_method(self, action):
         self.action = action
         method = getattr(self, self.action)
-        validation = SPFval.validate_arguments(
+        # validate arguments
+        validation = functions_validation.validate_arguments(
             product_name=self.product_name,
             amount=self.amount,
             price_unit=self.price_unit,
             expiration_date=self.expiration_date,
         )
+        # if there are errors print error message and exit
         if validation:
             print("\n".join(validation))
             exit(1)
+
+        # if validation is passed call the wanted action (the one stored in args.command)
         else:
             method()
             print("OK")
@@ -48,10 +52,13 @@ class Action:
             reader = csv.DictReader(purchases_file, fieldnames=fieldnames)
             writer = csv.DictWriter(purchases_file, fieldnames=fieldnames)
 
+            # To determine which ID number was added last, all ID are added to a list.
+            # The new transaction will receive ID number based on the max of the list plus 1.
             for row in reader:
                 if row["ID"] != "ID":
                     ID_list.append(int(row["ID"]))
 
+            # save the transaction to the file
             writer.writerow(
                 {
                     "ID": max(ID_list) + 1,
@@ -64,9 +71,11 @@ class Action:
             )
 
     def sell(self):
-        product_stock = SPFstock.determine_stock(
+        product_stock = functions_stock.determine_stock(
             product_name=self.product_name, stock_date=date.today()
         )
+        # check if there are enough products in stock to sell the wanted amount, if not
+        # then print a message and exit.
         amount_in_stock = sum(obj.amount for obj in product_stock)
         if amount_in_stock == 0:
             print("Product is not in stock.")
@@ -74,6 +83,8 @@ class Action:
         elif amount_in_stock < self.amount:
             print(f"Not enough products in stock: only {amount_in_stock} available.")
             exit(1)
+
+        # if there are enough products:
         else:
             ID_list = [0]
             amount_left = self.amount
@@ -90,10 +101,14 @@ class Action:
                 reader = csv.DictReader(sales_file, fieldnames=fieldnames_sales)
                 writer = csv.DictWriter(sales_file, fieldnames=fieldnames_sales)
 
+                # To determine which ID number was added last, all ID are added to a list.
+                # The new transaction will receive ID number based on the max of the list plus 1.
                 for line in reader:
                     if line["ID"] != "ID":
                         ID_list.append(int(line["ID"]))
 
+                # First selling the products of purchases that have the oldest expiration_date
+                # Then move on to the next purchase till the wanted amount is reached.
                 while amount_left > 0:
                     oldest_expiration_date = min(
                         product_stock, key=lambda exp: exp.expiration_date
@@ -112,6 +127,8 @@ class Action:
                     )
                     amount_left -= amount_sold
                     ID_list.append(int(new_ID))
+                    # removing the purchase with the oldest expiration_date since all is
+                    # sold and will not be counted again in the first part of the while loop.
                     product_stock.remove(oldest_expiration_date)
 
 
@@ -122,37 +139,52 @@ class Report:
         self.per_product = per_product
 
     def get_method(self, action):
+        # If report inventory is entered with optional argument --per-product then a separate method is called.
+        # The inventory_per_product method calls inventory method of every product in stock,
+        # creating a table per product.
         self.action = (
             "inventory_per_product"
             if (action == "inventory" and self.per_product)
             else action
         )
         method = getattr(self, self.action)
-        validation = SPFval.validate_arguments(
+
+        # Validate arguments
+        validation = functions_validation.validate_arguments(
             product_name=self.product_name,
             report_date=self.report_date,
         )
+
+        # If there are errors print error message and exit
         if validation:
             print("\n".join(validation))
             exit(1)
+
+        # If validation is passed call the wanted action
         else:
             method()
 
     def revenue(self):
-        product_sold = SPFstock.sales(product_name=self.product_name)
-        date_intel = SPFstock.date_intel(report_date=self.report_date)
+        # report_date is determined by the optional arguments --today, --yesterday and --date
+        product_sold = functions_stock.sales(product_name=self.product_name)
+        date_intel = functions_stock.date_intel(report_date=self.report_date)
         product_sold_sorted = sorted(product_sold, key=lambda obj: obj.product_name)
         date_length = date_intel["date_length"]
         period = date_intel["message"]
         revenue_per_product = {}
 
+        # Add sales from the alphabetically sorted product_sold if the sale happened on
+        # report_date. Date_length determines if is looked at a date, month+year or year.
         for obj in product_sold_sorted:
             if obj.sell_date[0:date_length] == self.report_date:
                 revenue_per_product[obj.product_name] = revenue_per_product.get(
                     obj.product_name, 0
                 ) + int(obj.amount) * float(obj.price_unit)
 
+        # Calculate revenue of all sales of the requested report_date
         revenue_total = round(sum(revenue_per_product.values()), 2)
+
+        # Use Rich to create a table if optional argument --per-product was used
         console = Console()
         if self.per_product:
             table = Table(
@@ -176,6 +208,7 @@ class Report:
 
             return console.print(table)
 
+        # Print a message if --per-product was not used, which one depending on if a product-name was given.
         elif self.product_name is None:
             return print(f"Revenue for {period}: € {revenue_total:.2f}")
         else:
@@ -184,14 +217,17 @@ class Report:
             )
 
     def profit(self):
-        product_sold = SPFstock.sales(product_name=self.product_name)
-        product_bought = SPFstock.purchases(product_name=self.product_name)
+        # report_date is determined by the optional arguments --today, --yesterday and --date
+        product_sold = functions_stock.sales(product_name=self.product_name)
+        product_bought = functions_stock.purchases(product_name=self.product_name)
         product_sold_sorted = sorted(product_sold, key=lambda obj: obj.product_name)
-        date_intel = SPFstock.date_intel(report_date=self.report_date)
+        date_intel = functions_stock.date_intel(report_date=self.report_date)
         date_length = date_intel["date_length"]
         period = date_intel["message"]
         profit_per_product = {}
 
+        # Add sales and purchase transactions that are equal to the requested report_date.
+        # Date_length determines if is looked at a date, month+year or year
         for obj_sold in product_sold_sorted:
             if obj_sold.sell_date[0:date_length] == self.report_date:
                 profit_per_product[obj_sold.product_name] = profit_per_product.get(
@@ -205,7 +241,10 @@ class Report:
                     )
                 )
 
+        # Calculate profit of all sales of the requested report_date
         profit_total = round(sum(profit_per_product.values()), 2)
+
+        # Use Rich to create a table if optional argument --per-product was used
         console = Console()
         if self.per_product:
             table = Table(
@@ -227,6 +266,7 @@ class Report:
 
             return console.print(table)
 
+        # Print a message if --per-product was not used, which one depending on if a product-name was given.
         elif self.product_name is None:
             return print(f"Profit for {period}: € {profit_total:.2f}")
 
@@ -236,16 +276,21 @@ class Report:
             )
 
     def inventory(self):
-        product_stock = SPFstock.determine_stock(
-            product_name=self.product_name, stock_date=self.report_date
+        # Report_date is determined by the optional arguments --now and --yesterday
+        # If a product-name is given then only the data of that product is collected in product_stock
+        stock_date = datetime.strptime(self.report_date, "%Y-%m-%d")
+        product_stock = functions_stock.determine_stock(
+            product_name=self.product_name, stock_date=stock_date.date()
         )
 
         product_stock_sorted = sorted(product_stock, key=lambda obj: obj.product_name)
-        period = datetime.strptime(self.report_date, "%Y-%m-%d").strftime("%d %B %Y")
+        period = stock_date.strftime("%d %B %Y")
         total_amount = sum(int(obj.amount) for obj in product_stock_sorted)
         total_value = sum(
             (int(obj.amount) * float(obj.price_unit)) for obj in product_stock_sorted
         )
+
+        # Use Rich to create a table
         console = Console()
 
         table = Table(
@@ -267,34 +312,45 @@ class Report:
         )
         table.add_column("expiration date", justify="left")
 
-        for obj in product_stock_sorted:
+        if product_stock:
+            # Add the data from the products in stock
+            for obj in product_stock_sorted:
+                # Expired products are presented as "expired" instead of the expiration_date
+                expiration_date = (
+                    obj.expiration_date
+                    if datetime.strptime(obj.expiration_date, "%Y-%m-%d")
+                    >= datetime.strptime(self.report_date, "%Y-%m-%d")
+                    else "expired"
+                )
+                table.add_row(
+                    obj.product_name,
+                    f"{obj.amount}",
+                    f"{'€':<1} {float(obj.price_unit):>7.2f}",
+                    f"{'€':<1} {round(int(obj.amount)*float(obj.price_unit),2):>10.2f}",
+                    expiration_date,
+                )
 
-            expiration_date = (
-                obj.expiration_date
-                if obj.expiration_date >= self.report_date
-                else "expired"
-            )
-            table.add_row(
-                obj.product_name,
-                f"{obj.amount}",
-                f"{'€':<1} {float(obj.price_unit):>7.2f}",
-                f"{'€':<1} {round(int(obj.amount)*float(obj.price_unit),2):>10.2f}",
-                expiration_date,
-            )
-
-        return console.print(table)
+            return console.print(table)
+        else:
+            print("No stock present on requested date.")
 
     def inventory_per_product(self):
-        product_stock = SPFstock.determine_stock(stock_date=self.report_date)
+        stock_date = datetime.strptime(self.report_date, "%Y-%m-%d")
+        product_stock = functions_stock.determine_stock(stock_date=stock_date.date())
         products_in_stock = []
 
-        for obj in product_stock:
-            if obj.product_name not in products_in_stock:
-                products_in_stock.append(obj.product_name)
+        if product_stock:
+            # Determine which products are in stock
+            for obj in product_stock:
+                if obj.product_name not in products_in_stock:
+                    products_in_stock.append(obj.product_name)
 
-        for product in products_in_stock:
-            self.product_name = product
-            self.inventory()
+            # Call inventory method for every product in stock
+            for product in products_in_stock:
+                self.product_name = product
+                self.inventory()
+        else:
+            print("No stock present on requested date.")
 
 
 class ImportFromFile:
@@ -306,22 +362,26 @@ class ImportFromFile:
     def get_method(self, action):
         self.action = action
         method = getattr(self, self.action)
-        validate_existence = SPFval.validate_file_existence(
+
+        # Check if the file exists
+        validate_existence = functions_validation.validate_file_existence(
             file_path=self.file_path, file_name=self.file_name
         )
+        # If not then print a message and exit
         if validate_existence:
             print(validate_existence)
             exit(1)
         else:
             self.file = os.path.join(self.file_path, self.file_name)
 
-            # create a temp.csv file using a method based on the file_type
+            # Create a temp.csv file using a method based on the file_type
             convert_method = getattr(self, self.file_type + "_to_temp_csv")
             convert_method()
 
-            # validate the content of the file and execute import method if validation is passed
-
-            validation = SPFval.validate_file_content(file_name="temp.csv")
+            # Validate the content of the file and execute import method if validation is passed
+            validation = functions_validation.validate_file_content(
+                file_name="temp.csv"
+            )
             if validation:
                 print("\n".join(validation))
                 exit(1)
@@ -343,12 +403,15 @@ class ImportFromFile:
             writer = csv.DictWriter(write_file, fieldnames=fieldnames)
             writer.writeheader()
 
+            # Since csv files standard delimiter is based on regional settings the
+            # csv.Sniffer is used to detect which one is used.
             with open(self.file, newline="") as read_file:
                 dialect = csv.Sniffer().sniff(read_file.read(1024))
                 read_file.seek(0)
 
                 reader = csv.DictReader(read_file, dialect=dialect)
 
+                # writing data to a temporary csv file
                 for line in reader:
                     if transaction == "buy":
                         writer.writerow(
@@ -420,7 +483,7 @@ class ImportFromFile:
                     )
 
     def import_buy(self):
-
+        # For every line in temp.csv an Action classobject is made and the buy method is called.
         line_count = 0
         with open("temp.csv") as read_file:
             fieldnames = ["product_name", "amount", "price_unit", "expiration_date"]
@@ -438,11 +501,12 @@ class ImportFromFile:
                     )
                     obj.buy()
 
+        # temp.csv is deleted and number of successfully imported transactions is printed.
         os.remove("temp.csv")
         return print(f"Import completed: {line_count} purchases transactions imported.")
 
     def import_sell(self):
-
+        # For every line in temp.csv an Action classobject is made and the sell method is called.
         line_count = 0
         with open("temp.csv") as read_file:
             fieldnames = ["product_name", "amount", "price_unit"]
@@ -460,5 +524,6 @@ class ImportFromFile:
                     )
                     obj.sell()
 
+        # temp.csv is deleted and number of successfully imported transactions is printed.
         os.remove("temp.csv")
         return print(f"Import completed: {line_count} sales transactions imported.")

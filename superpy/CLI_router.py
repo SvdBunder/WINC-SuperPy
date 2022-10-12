@@ -1,18 +1,18 @@
 import argparse, sys
-import functions_system as SPFsystem
-import CLI_parser as SPparser
-import classes as SPclass
+import functions_system
+import CLI_parser
+import classes
 
 
 def main():
-    parser = SPparser.main_parser
+    parser = CLI_parser.main_parser
 
-    # if no command is given will return help
+    # If no command is given will return help
     if len(sys.argv) == 1:
         parser.print_help()
         exit(0)
 
-    # catching invalid command and returning help
+    # Catching invalid command and returning help
     try:
         args = parser.parse_args()
     except argparse.ArgumentError:
@@ -20,43 +20,54 @@ def main():
         parser.print_help(sys.stderr)
         exit(1)
 
-    # calling the functions or classes
+    # Calling functions and classes
+
+    # The positional arguments : "report", "sell", "buy" and "import-file" are stored in "command"
+    # If none of them are entered then code looks which optional argument is used and will execute the corresponding function.
     if args.command is None:
+        # optional argument "--report-time"
         if args.report_time:
-            system_date = SPFsystem.read_time(0)
+            system_date = functions_system.read_time(0)
             full_name_date = system_date.strftime("%d %B %Y")
 
-            print(f"System time is {system_date} ({full_name_date})")
+            return print(f"System time is {system_date} ({full_name_date})")
 
+        # optional arguments "--product-list", "--add-product" and "--delete-product"
         elif (
             args.product_list
             or args.add_product is not None
             or args.delete_product is not None
         ):
-            SPFsystem.manage_products(
+            return functions_system.manage_products(
                 product_list=getattr(args, "product_list"),
                 add_product=getattr(args, "add_product"),
                 delete_product=getattr(args, "delete_product"),
             )
 
+        # optional arguments "--advance-time" and "--restore-time"
         else:
-            SPFsystem.save_time(days=args.advance_time, restore=args.restore_time)
+            return functions_system.save_time(
+                days=args.advance_time, restore=args.restore_time
+            )
 
+    # positional argument "import-file"; creates ImportFromFile classobject
     elif args.command == "import-file":
-        obj = SPclass.ImportFromFile(
+        obj = classes.ImportFromFile(
             file_path=getattr(args, "file_path", None),
             file_name=getattr(args, "file_name", None),
             file_type=getattr(args, "file_type", None),
         )
         action_wanted = "import_" + getattr(args, "transaction")
 
+    # positional argument "report"; first part catches if user has not specified the wanted report and returns "report help",
+    # second part creates Report classobject
     elif args.command == "report":
         if args.report is None:
             print("ERROR: not specified which report is wanted.\n")
-            SPparser.level1_report_parser.print_help(sys.stderr)
+            CLI_parser.level1_report_parser.print_help(sys.stderr)
             exit(1)
         else:
-            obj = SPclass.Report(
+            obj = classes.Report(
                 product_name=getattr(args, "product_name", None),
                 report_date=(
                     getattr(args, "report_date")
@@ -67,8 +78,9 @@ def main():
             )
             action_wanted = args.report
 
+    # positional argument "buy" or "sell"; creates Action classobject
     else:
-        obj = SPclass.Action(
+        obj = classes.Action(
             ID=None,
             product_name=getattr(args, "product_name"),
             price_unit=getattr(args, "price"),
